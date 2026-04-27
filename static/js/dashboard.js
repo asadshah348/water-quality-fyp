@@ -865,3 +865,89 @@ function updateCharts() {
     charts.safety.data.datasets[0].data = [safe, warning, critical];
     charts.safety.update('none');
 }
+
+
+// ==========================================================
+// MOBILE SIDEBAR FUNCTIONS
+// ==========================================================
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+
+    // Change icon
+    const icon = toggle.querySelector('i');
+    if (sidebar.classList.contains('active')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-times');
+    } else {
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
+    }
+}
+
+function closeSidebarOnMobile() {
+    if (window.innerWidth <= 1024) {
+        toggleSidebar();
+    }
+}
+
+// Close sidebar when clicking on nav links (mobile)
+document.querySelectorAll('.sidebar-nav a').forEach(link => {
+    link.addEventListener('click', () => {
+        if (window.innerWidth <= 1024) {
+            toggleSidebar();
+        }
+    });
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const toggle = document.getElementById('mobile-menu-toggle');
+    const icon = toggle.querySelector('i');
+
+    if (window.innerWidth > 1024) {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
+    }
+});
+
+// Touch swipe to open sidebar (mobile)
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+}, false);
+
+document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+}, false);
+
+function handleSwipe() {
+    const sidebar = document.getElementById('sidebar');
+    const swipeThreshold = 50;
+
+    // Swipe right from left edge to open
+    if (touchEndX - touchStartX > swipeThreshold && touchStartX < 30) {
+        if (!sidebar.classList.contains('active') && window.innerWidth <= 1024) {
+            toggleSidebar();
+        }
+    }
+
+    // Swipe left to close
+    if (touchStartX - touchEndX > swipeThreshold) {
+        if (sidebar.classList.contains('active')) {
+            toggleSidebar();
+        }
+    }
+}

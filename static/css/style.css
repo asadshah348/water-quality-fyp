@@ -1,5 +1,5 @@
 /* ==========================================================
-   WATER QUALITY MONITORING SYSTEM - STYLES
+   WATER QUALITY MONITORING SYSTEM - MOBILE RESPONSIVE STYLES
    ========================================================== */
 
 :root {
@@ -12,6 +12,7 @@
     --dark-color: #0f172a;
     --light-color: #f1f5f9;
     --sidebar-width: 260px;
+    --sidebar-collapsed: 70px;
     --card-bg: #ffffff;
     --body-bg: #f8fafc;
     --text-primary: #1e293b;
@@ -19,12 +20,20 @@
     --border-color: #e2e8f0;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --mobile-breakpoint: 768px;
+    --tablet-breakpoint: 1024px;
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
 }
 
 body {
@@ -32,9 +41,13 @@ body {
     background-color: var(--body-bg);
     color: var(--text-primary);
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Sidebar */
+/* ==========================================================
+   SIDEBAR - DESKTOP
+   ========================================================== */
 .sidebar {
     position: fixed;
     left: 0;
@@ -47,6 +60,8 @@ body {
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar-header {
@@ -55,17 +70,20 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-height: 70px;
 }
 
 .sidebar-header i {
     font-size: 28px;
     color: var(--primary-color);
+    flex-shrink: 0;
 }
 
 .sidebar-header span {
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .sidebar-nav {
@@ -82,6 +100,7 @@ body {
     text-decoration: none;
     transition: all 0.3s ease;
     border-left: 3px solid transparent;
+    white-space: nowrap;
 }
 
 .sidebar-nav a:hover,
@@ -95,6 +114,11 @@ body {
     font-size: 18px;
     width: 24px;
     text-align: center;
+    flex-shrink: 0;
+}
+
+.sidebar-nav a span {
+    font-size: 14px;
 }
 
 .sidebar-footer {
@@ -116,6 +140,7 @@ body {
     border-radius: 50%;
     background: var(--success-color);
     box-shadow: 0 0 8px var(--success-color);
+    animation: pulse-dot 2s infinite;
 }
 
 .status-dot.offline {
@@ -123,15 +148,56 @@ body {
     box-shadow: 0 0 8px var(--danger-color);
 }
 
-.last-update {
-    color: rgba(255, 255, 255, 0.5);
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
 }
 
-/* Main Content */
+.last-update {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1001;
+    background: var(--dark-color);
+    color: white;
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(4px);
+}
+
+/* ==========================================================
+   MAIN CONTENT
+   ========================================================== */
 .main-content {
     margin-left: var(--sidebar-width);
     padding: 24px 32px;
     min-height: 100vh;
+    transition: margin-left 0.3s ease;
 }
 
 /* Top Bar */
@@ -142,6 +208,8 @@ body {
     margin-bottom: 28px;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .page-title h1 {
@@ -149,6 +217,7 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 4px;
+    line-height: 1.2;
 }
 
 .page-title h1 i {
@@ -166,6 +235,7 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .refresh-indicator {
@@ -191,6 +261,8 @@ body {
     align-items: center;
     gap: 12px;
     animation: slideDown 0.3s ease;
+    position: relative;
+    padding-right: 40px;
 }
 
 .alert-banner.critical {
@@ -206,6 +278,7 @@ body {
 .alert-banner i {
     font-size: 20px;
     color: var(--warning-color);
+    flex-shrink: 0;
 }
 
 .alert-banner.critical i {
@@ -217,23 +290,31 @@ body {
 }
 
 .alert-banner .btn-close {
-    margin-left: auto;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 24px;
     cursor: pointer;
     color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.alert-banner .btn-close:hover {
+    background: rgba(0,0,0,0.05);
 }
 
 @keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Sections */
@@ -266,6 +347,7 @@ body {
     gap: 16px;
     transition: all 0.3s ease;
     border: 2px solid transparent;
+    height: 100%;
 }
 
 .prediction-card:hover {
@@ -312,6 +394,7 @@ body {
 
 .card-content {
     flex: 1;
+    min-width: 0;
 }
 
 .card-content h3 {
@@ -361,6 +444,10 @@ body {
     box-shadow: var(--shadow);
     text-align: center;
     transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .gauge-card:hover {
@@ -389,6 +476,7 @@ body {
 
 .gauge-info {
     margin-top: 16px;
+    width: 100%;
 }
 
 .current-value {
@@ -423,16 +511,12 @@ body {
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
+    display: inline-block;
 }
 
 .who-status .badge-safe {
     background: #d1fae5;
     color: #065f46;
-}
-
-.who-status .badge-warning {
-    background: #fef3c7;
-    color: #92400e;
 }
 
 .who-status .badge-danger {
@@ -446,6 +530,7 @@ body {
     border-radius: 16px;
     padding: 24px;
     box-shadow: var(--shadow);
+    height: 100%;
 }
 
 .chart-header {
@@ -492,6 +577,7 @@ body {
 .chart-container {
     position: relative;
     height: 300px;
+    width: 100%;
 }
 
 /* WHO Standards Table */
@@ -500,10 +586,13 @@ body {
     border-radius: 16px;
     padding: 24px;
     box-shadow: var(--shadow);
+    overflow-x: auto;
 }
 
 .who-table {
     margin: 0;
+    width: 100%;
+    min-width: 600px;
 }
 
 .who-table thead th {
@@ -515,6 +604,7 @@ body {
     letter-spacing: 0.5px;
     padding: 14px 16px;
     border: none;
+    white-space: nowrap;
 }
 
 .who-table tbody td {
@@ -542,6 +632,7 @@ body {
     color: #065f46;
     font-size: 13px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .status-unsafe {
@@ -554,6 +645,7 @@ body {
     color: #991b1b;
     font-size: 13px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 /* Drinkable Check Cards */
@@ -565,6 +657,10 @@ body {
     text-align: center;
     transition: all 0.3s ease;
     border: 2px solid transparent;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .drinkable-check-card:hover {
@@ -591,6 +687,7 @@ body {
     margin: 0 auto 16px;
     color: white;
     font-size: 28px;
+    flex-shrink: 0;
 }
 
 .drinkable-check-card.passed .check-icon {
@@ -672,10 +769,16 @@ body {
     font-size: 24px;
     color: var(--danger-color);
     margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .anomaly-item.warning i {
     color: var(--warning-color);
+}
+
+.anomaly-content {
+    flex: 1;
+    min-width: 0;
 }
 
 .anomaly-content h5 {
@@ -694,6 +797,8 @@ body {
 .anomaly-value {
     margin-left: auto;
     text-align: right;
+    flex-shrink: 0;
+    padding-left: 12px;
 }
 
 .anomaly-value .value {
@@ -737,6 +842,7 @@ body {
     border-radius: 16px;
     padding: 24px;
     box-shadow: var(--shadow);
+    overflow-x: auto;
 }
 
 .raw-data-card pre {
@@ -745,7 +851,8 @@ body {
     font-size: 13px;
     line-height: 1.6;
     margin: 0;
-    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 /* Footer */
@@ -762,60 +869,345 @@ body {
     margin-right: 6px;
 }
 
-/* Responsive */
+/* ==========================================================
+   RESPONSIVE DESIGN - TABLET (max-width: 1024px)
+   ========================================================== */
 @media (max-width: 1024px) {
     .sidebar {
         transform: translateX(-100%);
+        width: 280px;
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
     }
 
     .main-content {
         margin-left: 0;
+        padding: 80px 20px 24px;
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .page-title h1 {
+        font-size: 24px;
+    }
+
+    .chart-container {
+        height: 250px;
     }
 }
 
+/* ==========================================================
+   RESPONSIVE DESIGN - MOBILE (max-width: 768px)
+   ========================================================== */
 @media (max-width: 768px) {
+    html {
+        font-size: 14px;
+    }
+
     .main-content {
-        padding: 16px;
+        padding: 70px 12px 20px;
     }
 
     .top-bar {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
     }
 
     .page-title h1 {
-        font-size: 22px;
+        font-size: 20px;
     }
 
+    .subtitle {
+        font-size: 12px;
+    }
+
+    .top-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .section {
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        margin-bottom: 16px;
+    }
+
+    /* Prediction cards - stack vertically */
     .prediction-card {
         flex-direction: column;
         text-align: center;
+        padding: 20px;
+        gap: 12px;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+        margin: 0 auto;
+    }
+
+    .card-content h3 {
+        font-size: 14px;
+    }
+
+    .status-badge {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+
+    .card-details {
+        font-size: 12px;
+    }
+
+    /* Gauge cards */
+    .gauge-card {
+        padding: 16px;
+    }
+
+    .gauge-header h4 {
+        font-size: 14px;
+    }
+
+    .current-value .value {
+        font-size: 24px;
+    }
+
+    .current-value .unit {
+        font-size: 14px;
+    }
+
+    .safe-range {
+        font-size: 11px;
+    }
+
+    /* Charts */
+    .chart-card {
+        padding: 16px;
     }
 
     .chart-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 8px;
+    }
+
+    .chart-header h4 {
+        font-size: 14px;
+    }
+
+    .chart-container {
+        height: 220px;
+    }
+
+    .chart-legend {
+        gap: 10px;
+    }
+
+    /* WHO Table */
+    .who-standards-card {
+        padding: 16px;
+    }
+
+    .who-table thead th,
+    .who-table tbody td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    /* Drinkable cards */
+    .drinkable-check-card {
+        padding: 20px;
+    }
+
+    .check-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
+    }
+
+    .check-value {
+        font-size: 24px;
+    }
+
+    /* Anomaly items */
+    .anomaly-item {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .anomaly-item i {
+        font-size: 20px;
+    }
+
+    .anomaly-content h5 {
+        font-size: 14px;
+    }
+
+    .anomaly-value .value {
+        font-size: 16px;
+    }
+
+    /* Alert banner */
+    .alert-banner {
+        padding: 12px 16px;
+        font-size: 13px;
+        gap: 8px;
+    }
+
+    .alert-banner i {
+        font-size: 16px;
+    }
+
+    /* Footer */
+    .dashboard-footer {
+        margin-top: 24px;
+        padding: 16px 0;
+        font-size: 12px;
+        text-align: center;
+    }
+
+    .dashboard-footer .text-end {
+        text-align: center !important;
+        margin-top: 8px;
     }
 }
 
-/* Animations */
+/* ==========================================================
+   RESPONSIVE DESIGN - SMALL MOBILE (max-width: 480px)
+   ========================================================== */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 65px 10px 16px;
+    }
+
+    .page-title h1 {
+        font-size: 18px;
+    }
+
+    .section-title {
+        font-size: 16px;
+    }
+
+    .prediction-card {
+        padding: 16px;
+    }
+
+    .gauge-card {
+        padding: 12px;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
+
+    .who-table {
+        font-size: 12px;
+    }
+
+    .who-table thead th,
+    .who-table tbody td {
+        padding: 8px 10px;
+    }
+
+    .status-safe,
+    .status-unsafe {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+
+    .drinkable-check-card {
+        padding: 16px;
+    }
+
+    .check-value {
+        font-size: 20px;
+    }
+
+    .raw-data-card {
+        padding: 16px;
+    }
+
+    .raw-data-card pre {
+        font-size: 11px;
+    }
+}
+
+/* ==========================================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ========================================================== */
+@media (hover: none) and (pointer: coarse) {
+    .prediction-card:hover,
+    .gauge-card:hover,
+    .drinkable-check-card:hover {
+        transform: none;
+    }
+
+    .sidebar-nav a {
+        padding: 16px 24px;
+    }
+
+    .btn, .status-badge, .badge {
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+/* ==========================================================
+   LANDSCAPE MODE ON MOBILE
+   ========================================================== */
+@media (max-height: 500px) and (orientation: landscape) {
+    .sidebar {
+        width: 240px;
+    }
+
+    .sidebar-header {
+        padding: 16px 20px;
+        min-height: 60px;
+    }
+
+    .sidebar-header span {
+        font-size: 18px;
+    }
+
+    .sidebar-nav a {
+        padding: 10px 24px;
+    }
+}
+
+/* ==========================================================
+   ANIMATIONS
+   ========================================================== */
 @keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Scrollbar */
+/* ==========================================================
+   SCROLLBAR STYLING
+   ========================================================== */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -824,9 +1216,30 @@ body {
 
 ::-webkit-scrollbar-thumb {
     background: #cbd5e1;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+
+/* ==========================================================
+   PRINT STYLES
+   ========================================================== */
+@media print {
+    .sidebar,
+    .mobile-menu-toggle,
+    .top-actions,
+    .alert-banner {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 20px;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
 }

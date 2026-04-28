@@ -9,6 +9,7 @@ import pandas as pd
 import joblib
 import os
 import json
+import base64
 from datetime import datetime
 
 app = Flask(__name__)
@@ -59,27 +60,48 @@ WHO_ANOMALY_THRESHOLDS = {
 def init_firebase():
     if not firebase_admin._apps:
         try:
-            if os.getenv("FIREBASE_PRIVATE_KEY"):
-                # ✅ Use environment variables (Render)
-                cred = credentials.Certificate({
-                    "type": os.getenv("FIREBASE_TYPE"),
-                    "project_id": os.getenv("FIREBASE_PROJECT_ID"),
-                    "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
-                    "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+            # --- METHOD 1: Base64 from environment variable (Render) ---
+            b64_key = os.getenv('FIREBASE_KEY_B64')
+            if b64_key:
+                key_json = base64.b64decode(b64_key).decode('utf-8')
+                cred_dict = json.loads(key_json)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred, {
+                    "databaseURL": "https://water-ec24c-default-rtdb.firebaseio.com/"
                 })
-            else:
-                # ✅ Fallback for local
-                cred = credentials.Certificate("firebase_key.json")
+                print("[FIREBASE] Connected via base64 env var")
+                return db.reference("/")
 
-            firebase_admin.initialize_app(cred, {
-                "databaseURL": "https://water-ec24c-default-rtdb.firebaseio.com/"
-            })
+            # --- METHOD 2: Render Secret File ---
+            secret_path = "/etc/secrets/firebase_key.json"
+            if os.path.exists(secret_path):
+                cred = credentials.Certificate(secret_path)
+                firebase_admin.initialize_app(cred, {
+                    "databaseURL": "https://water-ec24c-default-rtdb.firebaseio.com/"
+                })
+                print("[FIREBASE] Connected via Render secret file")
+                return db.reference("/")
 
-        except Exception as e:
-            print(f"Firebase init error: {e}")
+            # --- METHOD 3: Local file (development) ---
+            local_path = os.path.join(os.path.dirname(__file__), "firebase_key.json")
+            if os.path.exists(local_path):
+                cred = credentials.Certificate(local_path)
+                firebase_admin.initialize_app(cred, {
+                    "databaseURL": "https://water-ec24c-default-rtdb.firebaseio.com/"
+                })
+                print("[FIREBASE] Connected via local file")
+                return db.reference("/")
+
+            print("[FIREBASE] No credentials found - will use demo data")
             return None
 
+        except Exception as e:
+            print(f"[FIREBASE] Init error: {e}")
+            return None
     return db.reference("/")
+
+# >>> FIX: Actually call init_firebase() to define ref <<<
+ref = init_firebase()
 
 # ----------------------------------------------------------
 # LOAD MODELS
@@ -102,38 +124,30 @@ rf, iso, scaler = load_models()
 # ----------------------------------------------------------
 def get_sensor_data():
     """Read data from Firebase or return demo data"""
-    firebase_connected = False
-    data = None
-    
     try:
-        if ref:
+        if ref is not None:
             data = ref.get()
             if data is not None:
-                firebase_connected = True
-                print(f"[FIREBASE] Data read successfully: {data}")
-            else:
-                print("[FIREBASE] Connected but no data at root path")
+                print("[FIREBASE] Data read successfully")
+                return data
         else:
-            print("[FIREBASE] Reference is None - not initialized")
+            data = None
     except Exception as e:
         print(f"[FIREBASE] Read error: {e}")
-    
-    if data is None:
-        print("[DEMO] Using demo data - Firebase not available")
-        data = {
-            "Temperature": 24.5,
-            "Turbidity": 2.3,
-            "Level": 45.0,
-            "TDS": 320,
-            "PH": 7.2,
-            "Pressure": 950,
-            "Status": "NO_Leakage",
-            "_demo_mode": True
-        }
-    else:
-        data["_demo_mode"] = False
-        data["_firebase_connected"] = True
-    
+        data = None
+
+    # Demo data fallback
+    print("[DEMO] Using demo data - Firebase not available")
+    data = {
+        "Temperature": 24.5,
+        "Turbidity": 2.3,
+        "Level": 45.0,
+        "TDS": 320,
+        "PH": 7.2,
+        "Pressure": 950,
+        "Status": "NO_Leakage",
+        "_demo_mode": True
+    }
     return data
 
 def process_data(data):
@@ -146,9 +160,9 @@ def process_data(data):
         "PH": float(data.get("PH", 7.0)),
         "Pressure": float(data.get("Pressure", 900)),
     }
-    
+
     firebase_status = str(data.get("Status", "NO_Leakage"))
-    
+
     return row, firebase_status
 
 def predict_leakage(row, firebase_status):
@@ -160,7 +174,7 @@ def predict_leakage(row, firebase_status):
         ml_leak = rf.predict(X_scaled)[0]
     else:
         ml_leak = 0
-    
+
     # Hybrid Decision
     if firebase_status == "Leakage":
         return "Leakage", "critical"
@@ -177,10 +191,10 @@ def detect_anomaly(row):
     """Detect anomaly based on WHO standards"""
     anomalies = []
     anomaly_details = {}
-    
+
     for param, thresholds in WHO_ANOMALY_THRESHOLDS.items():
         value = row[param]
-        
+
         if value < thresholds['min'] or value > thresholds['max']:
             severity = "critical" if (value < thresholds.get('critical', thresholds['min']) or 
                                      value > thresholds.get('critical', thresholds['max'])) else "warning"
@@ -201,7 +215,7 @@ def detect_anomaly(row):
                 "severity": "safe",
                 "value": value
             }
-    
+
     # ML Anomaly Detection
     if iso is not None and scaler is not None:
         X = pd.DataFrame([row], columns=FEATURES)
@@ -214,9 +228,9 @@ def detect_anomaly(row):
                 "severity": "warning",
                 "message": "Unusual pattern detected by ML model"
             })
-    
+
     is_anomaly = len(anomalies) > 0
-    
+
     return {
         "is_anomaly": is_anomaly,
         "anomaly_count": len(anomalies),
@@ -249,9 +263,9 @@ def check_drinkable(row):
             "message": "Turbidity should be ≤ 4 NTU"
         }
     }
-    
+
     is_drinkable = all(check["passed"] for check in checks.values())
-    
+
     return {
         "is_drinkable": is_drinkable,
         "checks": checks
@@ -277,12 +291,12 @@ def get_data():
     try:
         raw_data = get_sensor_data()
         row, firebase_status = process_data(raw_data)
-        
+
         # Predictions
         leakage_status, leakage_severity = predict_leakage(row, firebase_status)
         anomaly_result = detect_anomaly(row)
         drinkable_result = check_drinkable(row)
-        
+
         # Parameter statuses
         param_statuses = {}
         for param in FEATURES:
@@ -292,11 +306,11 @@ def get_data():
                 "safe_range": WHO_STANDARDS[param]['safe_range'],
                 "status": get_parameter_status(param, row[param])
             }
-        
+
         response = {
             "timestamp": datetime.now().isoformat(),
-            "firebase_connected": not raw_data.get("_demo_mode", True),
-            "demo_mode": raw_data.get("_demo_mode", True),
+            "firebase_connected": ref is not None,
+            "demo_mode": raw_data.get("_demo_mode", False),
             "sensors": param_statuses,
             "leakage": {
                 "status": leakage_status,
@@ -306,9 +320,9 @@ def get_data():
             "drinkable": drinkable_result,
             "raw_data": {k: v for k, v in raw_data.items() if not k.startswith("_")}
         }
-        
+
         return jsonify(response)
-    
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
